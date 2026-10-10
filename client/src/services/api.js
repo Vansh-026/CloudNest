@@ -1,5 +1,7 @@
 let accessToken = localStorage.getItem('cloudnest_token') || null;
 
+export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 export const setToken = (token) => {
   accessToken = token;
   if (token) {
@@ -12,6 +14,7 @@ export const setToken = (token) => {
 export const getToken = () => accessToken;
 
 export const apiRequest = async (url, options = {}) => {
+  const targetUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
   const headers = { ...options.headers };
 
   // Do not set Content-Type for FormData (browser sets boundary automatically)
@@ -23,7 +26,7 @@ export const apiRequest = async (url, options = {}) => {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  let response = await fetch(url, {
+  let response = await fetch(targetUrl, {
     ...options,
     headers,
     credentials: 'include', // sends refresh token cookie
@@ -32,7 +35,7 @@ export const apiRequest = async (url, options = {}) => {
   // If 401, attempt silent refresh token rotation once only if an active session existed
   if (response.status === 401 && accessToken && !url.includes('/auth/login') && !url.includes('/auth/refresh') && !url.includes('/auth/register')) {
     try {
-      const refreshRes = await fetch('/api/auth/refresh', {
+      const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -44,7 +47,7 @@ export const apiRequest = async (url, options = {}) => {
           headers['Authorization'] = `Bearer ${refreshData.accessToken}`;
 
           // Retry original request
-          response = await fetch(url, {
+          response = await fetch(targetUrl, {
             ...options,
             headers,
             credentials: 'include',
@@ -350,14 +353,14 @@ export const api = {
   getPublicShare: async (token, password) => {
     const headers = {};
     if (password) headers['x-share-password'] = password;
-    const res = await fetch(`/api/shares/public/${token}`, {
+    const res = await fetch(`${API_BASE}/api/shares/public/${token}`, {
       headers,
     });
     return res.json();
   },
 
   verifySharePassword: async (token, password) => {
-    const res = await fetch(`/api/shares/public/${token}/verify-password`, {
+    const res = await fetch(`${API_BASE}/api/shares/public/${token}/verify-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),
@@ -367,12 +370,12 @@ export const api = {
 
   getPublicDownloadUrl: (token, password) => {
     const param = password ? `?password=${encodeURIComponent(password)}` : '';
-    return `/api/shares/public/${token}/download${param}`;
+    return `${API_BASE}/api/shares/public/${token}/download${param}`;
   },
 
   getPublicPreviewUrl: (token, password) => {
     const param = password ? `?password=${encodeURIComponent(password)}` : '';
-    return `/api/shares/public/${token}/preview${param}`;
+    return `${API_BASE}/api/shares/public/${token}/preview${param}`;
   },
 };
 

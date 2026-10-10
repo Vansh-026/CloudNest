@@ -18,7 +18,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-import { getToken } from '../services/api';
+import { getToken, API_BASE } from '../services/api';
 
 const formatBytes = (bytes = 0) => {
   if (bytes === 0) return '0 B';
@@ -53,7 +53,7 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
   const isText = mime.startsWith('text/') || mime.includes('json') || mime.includes('javascript') || TEXT_EXTENSIONS.has(ext);
 
   const token = getToken();
-  const previewUrl = node ? `/api/nodes/${node._id}/preview${token ? `?token=${encodeURIComponent(token)}` : ''}` : '';
+  const previewUrl = node ? `${API_BASE}/api/nodes/${node._id}/preview${token ? `?token=${encodeURIComponent(token)}` : ''}` : '';
 
   useEffect(() => {
     const handleKeyDown = (e) => {

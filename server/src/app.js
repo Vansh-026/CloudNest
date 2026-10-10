@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import fs from 'fs';
 import { ZodError } from 'zod';
 import authRoutes from './routes/authRoutes.js';
 import nodeRoutes from './routes/nodeRoutes.js';
@@ -11,10 +13,31 @@ import shareRoutes from './routes/shareRoutes.js';
 const app = express();
 
 // Security and utility middlewares
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.onrender.com') ||
+        origin.startsWith('http://localhost:')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -48,7 +71,33 @@ app.use('/uploads', uploadRoutes);
 app.use('/api/shares', shareRoutes);
 app.use('/shares', shareRoutes);
 
-// 404 Not Found Handler
+// Optional: Serve built frontend when deployed together in a single service
+const clientDistCandidates = [
+  path.resolve('..', 'client', 'dist'),
+  path.resolve('client', 'dist'),
+  path.resolve('public'),
+];
+
+for (const candidate of clientDistCandidates) {
+  if (fs.existsSync(candidate)) {
+    app.use(express.static(candidate));
+    app.get('*', (req, res, next) => {
+      if (
+        req.originalUrl.startsWith('/api') ||
+        req.originalUrl.startsWith('/shares') ||
+        req.originalUrl.startsWith('/files') ||
+        req.originalUrl.startsWith('/uploads') ||
+        req.originalUrl.startsWith('/health')
+      ) {
+        return next();
+      }
+      res.sendFile(path.join(candidate, 'index.html'));
+    });
+    break;
+  }
+}
+
+// 404 Not Found Handler (only reaches here if API route not found or static frontend not present)
 app.use((req, res, _next) => {
   res.status(404).json({
     success: false,
