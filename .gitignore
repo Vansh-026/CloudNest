@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Environment and Local Config files
+.env
+.env.local
+.env.*.local
+*.env
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Server Storage & Uploaded User Content
+server/uploads/
+uploads/
+**/uploads/
+uploads/*
+
+# Production Build outputs
+dist/
+build/
+client/dist/
+**/dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System and IDE Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
