@@ -78,27 +78,36 @@ const clientDistCandidates = [
   path.resolve('public'),
 ];
 
+let clientDistFound = null;
 for (const candidate of clientDistCandidates) {
   if (fs.existsSync(candidate)) {
+    clientDistFound = candidate;
     app.use(express.static(candidate));
-    app.get('*', (req, res, next) => {
-      if (
-        req.originalUrl.startsWith('/api') ||
-        req.originalUrl.startsWith('/shares') ||
-        req.originalUrl.startsWith('/files') ||
-        req.originalUrl.startsWith('/uploads') ||
-        req.originalUrl.startsWith('/health')
-      ) {
-        return next();
-      }
-      res.sendFile(path.join(candidate, 'index.html'));
-    });
     break;
   }
 }
 
-// 404 Not Found Handler (only reaches here if API route not found or static frontend not present)
-app.use((req, res, _next) => {
+// 404 & SPA Routing Handler (Express 5 compatible, avoiding invalid wildcard routes)
+app.use((req, res, next) => {
+  // If request is for an unhandled API endpoint, return 404 JSON
+  if (
+    req.originalUrl.startsWith('/api') ||
+    req.originalUrl.startsWith('/shares') ||
+    req.originalUrl.startsWith('/files') ||
+    req.originalUrl.startsWith('/uploads') ||
+    req.originalUrl.startsWith('/health')
+  ) {
+    return res.status(404).json({
+      success: false,
+      message: `Cannot ${req.method} ${req.originalUrl}`,
+    });
+  }
+
+  // If client build exists and request is GET, serve index.html for React SPA router
+  if (clientDistFound && req.method === 'GET') {
+    return res.sendFile(path.join(clientDistFound, 'index.html'));
+  }
+
   res.status(404).json({
     success: false,
     message: `Cannot ${req.method} ${req.originalUrl}`,
