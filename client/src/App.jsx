@@ -1168,17 +1168,6 @@ export default function App() {
           >
             <X size={20} />
           </button>
-
-          {/* Collapse button for Laptop / Desktop Side Panel */}
-          <button
-            type="button"
-            className="btn-icon sidebar-collapse-btn"
-            onClick={() => setDesktopSidebarCollapsed(true)}
-            title="Hide side panel"
-            aria-label="Hide side panel"
-          >
-            <Menu size={18} />
-          </button>
         </div>
 
         {/* Action Button */}
