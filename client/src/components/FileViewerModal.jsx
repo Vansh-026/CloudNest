@@ -155,7 +155,7 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
             {!isPdf && !isImage && !isVideo && !isAudio && !isText && <File size={20} color="var(--text-muted)" />}
           </div>
 
-          <div style={{ overflow: 'hidden' }}>
+          <div style={{ overflow: 'hidden', minWidth: 0 }}>
             <h2
               style={{
                 fontSize: '1rem',
@@ -164,13 +164,13 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '480px',
+                maxWidth: 'clamp(120px, 35vw, 480px)',
               }}
               title={node.name}
             >
               {node.name}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               <span>{formatBytes(node.size)}</span>
               <span>•</span>
               <span style={{ textTransform: 'uppercase' }}>{ext || 'FILE'}</span>
@@ -181,35 +181,35 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           {isImage && (
-            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '2px', marginRight: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '2px', marginRight: '4px' }}>
               <button
                 className="btn-icon"
                 onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.25))}
                 title="Zoom Out"
-                style={{ width: '32px', height: '32px' }}
+                style={{ width: '30px', height: '30px' }}
               >
-                <ZoomOut size={15} />
+                <ZoomOut size={14} />
               </button>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', minWidth: '42px', textAlign: 'center', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', minWidth: '38px', textAlign: 'center', fontWeight: 600 }}>
                 {Math.round(zoomLevel * 100)}%
               </span>
               <button
                 className="btn-icon"
                 onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
                 title="Zoom In"
-                style={{ width: '32px', height: '32px' }}
+                style={{ width: '30px', height: '30px' }}
               >
-                <ZoomIn size={15} />
+                <ZoomIn size={14} />
               </button>
               <button
                 className="btn-icon"
                 onClick={() => setZoomLevel(1)}
                 title="Reset Zoom"
-                style={{ width: '32px', height: '32px' }}
+                style={{ width: '30px', height: '30px' }}
               >
-                <Maximize2 size={14} />
+                <Maximize2 size={13} />
               </button>
             </div>
           )}
@@ -218,55 +218,55 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
             <button
               className="btn btn-secondary"
               onClick={handleCopyText}
-              style={{ padding: '7px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ padding: '7px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               title="Copy content"
             >
               {copied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
+              <span className="viewer-btn-text">{copied ? 'Copied' : 'Copy'}</span>
             </button>
           )}
 
           <button
             className="btn btn-secondary"
             onClick={handleOpenNewTab}
-            style={{ padding: '7px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ padding: '7px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
             title="Open in new window"
           >
             <ExternalLink size={14} />
-            <span>Open in Tab</span>
+            <span className="viewer-btn-text">Open</span>
           </button>
 
           <button
             className="btn btn-secondary"
             onClick={() => onShare?.(node)}
-            style={{ padding: '7px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ padding: '7px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
             title="Share file"
           >
             <Share2 size={14} />
-            <span>Share</span>
+            <span className="viewer-btn-text">Share</span>
           </button>
 
           <button
             className="btn btn-primary"
             onClick={() => onDownload?.(node)}
-            style={{ padding: '7px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ padding: '7px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
             title="Download file"
           >
             <Download size={14} />
-            <span>Download</span>
+            <span className="viewer-btn-text">Download</span>
           </button>
 
           <button
             onClick={onClose}
             className="btn-icon"
             style={{
-              padding: '8px',
+              padding: '6px',
               borderRadius: '8px',
-              marginLeft: '6px',
+              marginLeft: '4px',
             }}
             title="Close viewer (Esc)"
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
       </div>

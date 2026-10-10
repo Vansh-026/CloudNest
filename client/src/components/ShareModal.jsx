@@ -184,7 +184,7 @@ export default function ShareModal({ node, isOpen, onClose, currentUser, showToa
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, overflow: 'hidden' }}>
             <div
               style={{
                 width: '38px',
@@ -194,15 +194,27 @@ export default function ShareModal({ node, isOpen, onClose, currentUser, showToa
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
               <Share2 size={20} color="#ffffff" />
             </div>
-            <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <h2
+                style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                }}
+                title={node.name}
+              >
                 Share "{node.name}"
               </h2>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Manage email collaborators & public links
               </p>
             </div>

@@ -68,20 +68,20 @@ export default function SharedWithMeView({ onOpenFolder, onPreviewFile, showToas
   );
 
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: 'clamp(14px, 3vw, 32px)' }}>
       {/* Header */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '24px',
-          gap: '16px',
+          marginBottom: '20px',
+          gap: '14px',
           flexWrap: 'wrap',
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Shared with me
           </h1>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -90,7 +90,7 @@ export default function SharedWithMeView({ onOpenFolder, onPreviewFile, showToas
         </div>
 
         {/* Search filter */}
-        <div style={{ position: 'relative', width: '280px' }}>
+        <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
           <Search
             size={16}
             color="var(--text-muted)"
@@ -102,7 +102,7 @@ export default function SharedWithMeView({ onOpenFolder, onPreviewFile, showToas
             placeholder="Search shared files..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '36px', height: '38px', borderRadius: '10px' }}
+            style={{ paddingLeft: '36px', height: '38px', borderRadius: '10px', width: '100%' }}
           />
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function SharedWithMeView({ onOpenFolder, onPreviewFile, showToas
         <div
           style={{
             textAlign: 'center',
-            padding: '80px 20px',
+            padding: '60px 20px',
             background: 'var(--bg-secondary)',
             borderRadius: 'var(--radius-lg)',
             border: '1px dashed var(--border-subtle)',
@@ -137,10 +137,11 @@ export default function SharedWithMeView({ onOpenFolder, onPreviewFile, showToas
             border: '1px solid var(--card-border)',
             borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--card-shadow)',
-            overflow: 'hidden',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+          <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                 <th style={{ padding: '14px 20px', fontWeight: 600 }}>Name</th>

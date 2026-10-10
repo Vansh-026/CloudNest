@@ -45,6 +45,7 @@ import {
   Users,
   Sun,
   Moon,
+  Menu,
 } from 'lucide-react';
 import { api, getToken, setToken } from './services/api';
 import UploadQueueModal from './components/UploadQueueModal';
@@ -140,6 +141,36 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile slide bar
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false); // Laptop/Desktop side panel collapsed
+
+  // Responsive sidebar resize and ESC key listener
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768 && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (sidebarOpen) setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [sidebarOpen]);
+
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setSidebarOpen((prev) => !prev);
+    } else {
+      setDesktopSidebarCollapsed((prev) => !prev);
+    }
+  };
 
   // Theme state: 'dark' | 'light'
   const [theme, setTheme] = useState(() => {
@@ -779,7 +810,7 @@ export default function App() {
           padding: 20,
         }}
       >
-        <div className="glass-modal" style={{ width: '100%', maxWidth: 460, borderRadius: 'var(--radius-lg)', padding: 36, position: 'relative' }}>
+        <div className="glass-modal auth-card" style={{ width: '100%', maxWidth: 460, borderRadius: 'var(--radius-lg)', position: 'relative' }}>
           {/* Auth Theme Toggle */}
           <button
             type="button"
@@ -1110,22 +1141,56 @@ export default function App() {
         onChange={(e) => handleFileUpload(e.target.files)}
       />
 
-      {/* Left Sidebar */}
-      <aside className="sidebar">
+      {/* Mobile Sidebar Backdrop Overlay */}
+      <div
+        className={`sidebar-backdrop ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Left Sidebar / Mobile Slide Bar */}
+      <aside className={`sidebar ${sidebarOpen ? 'mobile-open' : ''} ${desktopSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="brand">
-          <div className="brand-icon">
-            <Cloud size={22} color="#fff" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="brand-icon">
+              <Cloud size={22} color="#fff" />
+            </div>
+            <span className="brand-name">CloudNest</span>
           </div>
-          <span className="brand-name">CloudNest</span>
+
+          {/* Close button for Mobile Slide Bar */}
+          <button
+            type="button"
+            className="btn-icon sidebar-close-btn"
+            onClick={() => setSidebarOpen(false)}
+            title="Close menu"
+            aria-label="Close sidebar drawer"
+          >
+            <X size={20} />
+          </button>
+
+          {/* Collapse button for Laptop / Desktop Side Panel */}
+          <button
+            type="button"
+            className="btn-icon sidebar-collapse-btn"
+            onClick={() => setDesktopSidebarCollapsed(true)}
+            title="Hide side panel"
+            aria-label="Hide side panel"
+          >
+            <Menu size={18} />
+          </button>
         </div>
 
         {/* Action Button */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="sidebar-actions" style={{ display: 'flex', gap: 8 }}>
           <button
             type="button"
             className="btn btn-primary"
             style={{ flex: 1, padding: '12px', fontSize: '0.9rem' }}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              fileInputRef.current?.click();
+              setSidebarOpen(false);
+            }}
           >
             <UploadCloud size={18} />
             <span>Upload File</span>
@@ -1134,7 +1199,11 @@ export default function App() {
             type="button"
             className="btn btn-secondary"
             title="New Folder"
-            onClick={() => { setNewFolderName(''); setShowNewFolderModal(true); }}
+            onClick={() => {
+              setNewFolderName('');
+              setShowNewFolderModal(true);
+              setSidebarOpen(false);
+            }}
           >
             <FolderPlus size={18} />
           </button>
@@ -1144,7 +1213,11 @@ export default function App() {
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
           <div
             className={`nav-item ${activeTab === 'drive' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('drive'); setCurrentFolderId(null); }}
+            onClick={() => {
+              setActiveTab('drive');
+              setCurrentFolderId(null);
+              setSidebarOpen(false);
+            }}
           >
             <HardDrive size={18} />
             <span>My Drive</span>
@@ -1152,7 +1225,11 @@ export default function App() {
 
           <div
             className={`nav-item ${activeTab === 'shared' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('shared'); setCurrentFolderId(null); }}
+            onClick={() => {
+              setActiveTab('shared');
+              setCurrentFolderId(null);
+              setSidebarOpen(false);
+            }}
           >
             <Users size={18} />
             <span>Shared with me</span>
@@ -1160,7 +1237,11 @@ export default function App() {
 
           <div
             className={`nav-item ${activeTab === 'starred' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('starred'); setCurrentFolderId(null); }}
+            onClick={() => {
+              setActiveTab('starred');
+              setCurrentFolderId(null);
+              setSidebarOpen(false);
+            }}
           >
             <Star size={18} />
             <span>Starred</span>
@@ -1168,7 +1249,11 @@ export default function App() {
 
           <div
             className={`nav-item ${activeTab === 'trash' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('trash'); setCurrentFolderId(null); }}
+            onClick={() => {
+              setActiveTab('trash');
+              setCurrentFolderId(null);
+              setSidebarOpen(false);
+            }}
           >
             <Trash2 size={18} />
             <span>Trash</span>
@@ -1190,26 +1275,108 @@ export default function App() {
             {formatBytes(storageInfo.storageUsed)} of {formatBytes(storageInfo.storageLimit)} used
           </div>
         </div>
+
+        {/* Mobile Sidebar User Footer */}
+        {currentUser && (
+          <div className="sidebar-mobile-user">
+            <div
+              className="sidebar-user-info"
+              onClick={() => {
+                setShowSecurityModal(true);
+                setSidebarOpen(false);
+              }}
+              title="Account & Security"
+            >
+              <div className="sidebar-user-avatar">
+                {currentUser.avatar ? (
+                  <img src={currentUser.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  currentUser.name?.[0]?.toUpperCase() || 'U'
+                )}
+              </div>
+              <div className="sidebar-user-text">
+                <span className="sidebar-user-name">{currentUser.name}</span>
+                <span className="sidebar-user-email">{currentUser.email}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={handleLogout}
+              title="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Main Area */}
       <div className="main-wrapper">
         {/* Top Header */}
         <header className="topbar">
+          <div className="topbar-left">
+            {/* Three line hamburger toggle for both mobile and laptop */}
+            <button
+              type="button"
+              className="btn-icon sidebar-toggle-btn"
+              onClick={toggleSidebar}
+              title={desktopSidebarCollapsed ? "Show side panel (three lines)" : "Hide side panel (three lines)"}
+              aria-label="Toggle side panel"
+            >
+              <Menu size={20} />
+            </button>
+
+            {/* Topbar Brand identity (visible on mobile, and on desktop when sidebar is hidden) */}
+            <div
+              className={`topbar-brand ${desktopSidebarCollapsed ? 'visible-desktop' : ''}`}
+              onClick={() => { setActiveTab('drive'); setCurrentFolderId(null); }}
+              title="CloudNest Home"
+            >
+              <div className="brand-icon topbar-brand-icon">
+                <Cloud size={18} color="#fff" />
+              </div>
+              <span className="brand-name topbar-brand-name">CloudNest</span>
+            </div>
+          </div>
+
+          {/* Search Box */}
           <div className="search-box">
-            <Search className="search-icon" size={18} />
+            <Search className="search-icon" size={17} />
             <input
               type="text"
               className="input"
-              placeholder="Search in CloudNest..."
+              placeholder="Search files & folders..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Topbar Right Controls */}
+          <div className="topbar-right">
+            {/* Quick Upload Button on Topbar (Mobile & Desktop) */}
+            <button
+              type="button"
+              className="btn btn-primary topbar-upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload File"
+            >
+              <UploadCloud size={16} />
+              <span className="topbar-upload-text">Upload</span>
+            </button>
+
             {/* View mode toggle */}
-            <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', padding: 3, border: '1px solid var(--border-subtle)' }}>
+            <div className="view-mode-toggle">
               <button
                 type="button"
                 className="btn-icon"
@@ -1233,29 +1400,17 @@ export default function App() {
             {/* Light / Dark Mode Toggle */}
             <button
               type="button"
-              className="btn-icon"
+              className="btn-icon theme-toggle-btn"
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 36,
-                height: 36,
-                borderRadius: 'var(--radius-md)',
-                color: theme === 'dark' ? '#fbbf24' : '#4f46e5',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-secondary)',
-                cursor: 'pointer',
-              }}
             >
               {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
 
             {/* User Profile & Security Settings */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 8, borderLeft: '1px solid var(--border-subtle)' }}>
+            <div className="topbar-profile-section">
               <div
-                style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', overflow: 'hidden' }}
+                className="topbar-avatar"
                 onClick={() => setShowSecurityModal(true)}
                 title="Account & Security"
               >
@@ -1265,7 +1420,9 @@ export default function App() {
                   currentUser.name?.[0]?.toUpperCase() || 'U'
                 )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer' }} onClick={() => setShowSecurityModal(true)}>
+
+              {/* Desktop User Details */}
+              <div className="topbar-user-details" onClick={() => setShowSecurityModal(true)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{currentUser.name}</span>
                   {currentUser.emailVerified && (
@@ -1276,15 +1433,21 @@ export default function App() {
                 </div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{currentUser.email}</span>
               </div>
+
               <button
                 type="button"
-                className="btn-icon"
+                className="btn-icon topbar-shield-btn"
                 onClick={() => setShowSecurityModal(true)}
                 title="Security & 2FA Settings"
               >
                 <Shield size={16} color={currentUser.twoFactorEnabled ? '#10b981' : 'var(--accent-primary)'} />
               </button>
-              <button type="button" className="btn-icon" onClick={handleLogout} title="Sign Out">
+              <button
+                type="button"
+                className="btn-icon topbar-logout-btn"
+                onClick={handleLogout}
+                title="Sign Out"
+              >
                 <LogOut size={16} />
               </button>
             </div>
@@ -1314,24 +1477,39 @@ export default function App() {
             />
           ) : (
             <>
-              {/* Breadcrumbs Navigation */}
+              {/* Breadcrumbs Navigation & Header Actions */}
               {activeTab === 'drive' && (
-                <div className="breadcrumbs">
-                  {breadcrumbs.map((crumb, idx) => (
-                    <React.Fragment key={crumb.id || 'root'}>
-                      <div
-                        className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'current' : ''}`}
-                        onClick={() => {
-                          if (idx !== breadcrumbs.length - 1) {
-                            setCurrentFolderId(crumb.id);
-                          }
-                        }}
-                      >
-                        {crumb.name}
-                      </div>
-                      {idx < breadcrumbs.length - 1 && <ChevronRight size={14} color="var(--text-muted)" />}
-                    </React.Fragment>
-                  ))}
+                <div className="content-header-row">
+                  <div className="breadcrumbs">
+                    {breadcrumbs.map((crumb, idx) => (
+                      <React.Fragment key={crumb.id || 'root'}>
+                        <div
+                          className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'current' : ''}`}
+                          onClick={() => {
+                            if (idx !== breadcrumbs.length - 1) {
+                              setCurrentFolderId(crumb.id);
+                            }
+                          }}
+                        >
+                          {crumb.name}
+                        </div>
+                        {idx < breadcrumbs.length - 1 && <ChevronRight size={14} color="var(--text-muted)" />}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {/* Quick Action Button for Mobile/Tablet */}
+                  <div className="content-quick-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary content-new-folder-btn"
+                      onClick={() => { setNewFolderName(''); setShowNewFolderModal(true); }}
+                      title="New Folder"
+                    >
+                      <FolderPlus size={15} />
+                      <span>New Folder</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1361,7 +1539,7 @@ export default function App() {
                       <div
                         key={folder._id}
                         className="folder-card"
-                        onDoubleClick={() => setCurrentFolderId(folder._id)}
+                        onClick={() => setCurrentFolderId(folder._id)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
                           <Folder size={22} color="#6366f1" />
@@ -1514,7 +1692,7 @@ export default function App() {
       {/* New Folder Modal */}
       {showNewFolderModal && (
         <div className="modal-backdrop" onClick={() => setShowNewFolderModal(false)}>
-          <div className="glass-modal" style={{ width: 380, borderRadius: 'var(--radius-lg)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-modal" style={{ width: '100%', maxWidth: 380, borderRadius: 'var(--radius-lg)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>Create New Folder</h3>
             <form onSubmit={handleCreateFolder}>
               <input
@@ -1538,7 +1716,7 @@ export default function App() {
       {/* Rename Modal */}
       {showRenameModal && activeNode && (
         <div className="modal-backdrop" onClick={() => setShowRenameModal(false)}>
-          <div className="glass-modal" style={{ width: 380, borderRadius: 'var(--radius-lg)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-modal" style={{ width: '100%', maxWidth: 380, borderRadius: 'var(--radius-lg)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>Rename Item</h3>
             <form onSubmit={handleRename}>
               <input
@@ -1571,7 +1749,7 @@ export default function App() {
       {/* Google Quick Connect Modal */}
       {showGoogleModal && (
         <div className="modal-backdrop" onClick={() => setShowGoogleModal(false)}>
-          <div className="glass-modal" style={{ width: 420, borderRadius: 'var(--radius-lg)', padding: 28 }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-modal" style={{ width: '100%', maxWidth: 420, borderRadius: 'var(--radius-lg)', padding: 28 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <GoogleIcon />
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Google Sign-In</h3>
