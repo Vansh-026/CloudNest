@@ -19,6 +19,9 @@ import {
   getStarred,
   search,
   getStorage,
+  getProcessingStatus,
+  reprocessFileController,
+  getThumbnail,
 } from '../controllers/nodeController.js';
 
 const router = Router();
@@ -35,6 +38,11 @@ router.get('/storage', getStorage);
 router.get('/trash', getTrash);
 router.get('/starred', getStarred);
 router.get('/search', search);
+
+// Background Processing Status & Reprocess
+router.get('/:id/processing-status', getProcessingStatus);
+router.post('/:id/reprocess', reprocessFileController);
+router.get('/:id/thumbnail', getThumbnail);
 
 // Creations
 router.post('/folder', createFolder);

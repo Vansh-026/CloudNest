@@ -274,6 +274,24 @@ export const api = {
     return res.json();
   },
 
+  // Background Job Processing
+  getFileProcessingStatus: async (fileId) => {
+    const res = await apiRequest(`/api/files/${fileId}/processing-status`);
+    return res.json();
+  },
+
+  reprocessFile: async (fileId) => {
+    const res = await apiRequest(`/api/files/${fileId}/reprocess`, {
+      method: 'POST',
+    });
+    return res.json();
+  },
+
+  getFileThumbnailUrl: (fileId) => {
+    const token = getToken();
+    return `${API_BASE}/api/files/${fileId}/thumbnail${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+
   // Chunk Upload & Deduplication (Resumable)
   initChunkUpload: async ({ filename, size, chunkSize, chunkHashes, parentId }) => {
     const res = await apiRequest('/api/uploads/init', {

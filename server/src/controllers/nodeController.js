@@ -17,7 +17,12 @@ import {
   searchNodes,
   getStorageOverview,
 } from '../services/nodeService.js';
-import { verifySignedDownloadToken } from '../services/s3Service.js';
+import path from 'path';
+import Share from '../models/Share.js';
+import { verifySignedDownloadToken, getS3Client, isS3Configured } from '../services/s3Service.js';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getFileProcessingStatus, reprocessFile } from '../services/jobService.js';
 
 export const getNodes = async (req, res, next) => {
   try {
@@ -350,6 +355,120 @@ export const getStorage = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/files/:id/processing-status
+ * Retrieve detailed background job status (scan, thumbnails, OCR, embeddings)
+ */
+export const getProcessingStatus = async (req, res, next) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const { id } = req.params;
+
+    const status = await getFileProcessingStatus(userId, id);
+
+    return res.status(200).json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/files/:id/reprocess
+ * Request manual reprocessing for eligible processing steps
+ */
+export const reprocessFileController = async (req, res, next) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const { id } = req.params;
+
+    const result = await reprocessFile(userId, id);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/files/:id/thumbnail
+ * Serve generated WebP thumbnail preview directly
+ */
+export const getThumbnail = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const { id } = req.params;
+
+    let node = await Node.findOne({
+      _id: id,
+      ownerId: userId,
+      type: 'file',
+    });
+
+    if (!node && userId) {
+      const share = await Share.findOne({
+        nodeId: id,
+        userId,
+        isActive: true,
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+      });
+      if (share) {
+        node = await Node.findOne({ _id: id, type: 'file', trashed: false });
+      }
+    }
+
+    if (!node) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    if (!node.processing?.thumbnailKey) {
+      return res.status(404).json({ success: false, message: 'No thumbnail available for this file' });
+    }
+
+    // S3 thumbnail delivery
+    if (node.storageProvider === 's3' && isS3Configured()) {
+      const s3Client = getS3Client();
+      const bucket = node.s3Bucket || process.env.AWS_S3_BUCKET;
+      const command = new GetObjectCommand({
+        Bucket: bucket,
+        Key: node.processing.thumbnailKey,
+        ResponseContentType: 'image/webp',
+      });
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      return res.redirect(signedUrl);
+    }
+
+    // Local disk thumbnail delivery
+    const thumbCandidatePaths = [
+      path.resolve('uploads', node.processing.thumbnailKey),
+      path.resolve(node.processing.thumbnailKey),
+    ];
+
+    let foundPath = null;
+    for (const cand of thumbCandidatePaths) {
+      if (fs.existsSync(cand)) {
+        foundPath = cand;
+        break;
+      }
+    }
+
+    if (foundPath) {
+      res.setHeader('Content-Type', 'image/webp');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return fs.createReadStream(foundPath).pipe(res);
+    }
+
+    return res.status(404).json({ success: false, message: 'Thumbnail file content not found' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   getNodes,
   createFolder,
@@ -368,4 +487,7 @@ export default {
   getStarred,
   search,
   getStorage,
+  getProcessingStatus,
+  reprocessFileController,
+  getThumbnail,
 };

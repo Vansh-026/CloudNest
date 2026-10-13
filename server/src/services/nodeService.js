@@ -9,6 +9,7 @@ import {
   generateSignedDownloadUrl,
   deleteFileFromStorage,
 } from './s3Service.js';
+import { enqueueFileProcessing } from '../queues/fileProcessing.queue.js';
 
 /**
  * Build breadcrumb trail from a given folder up to My Drive (root)
@@ -215,6 +216,27 @@ export const uploadFile = async (userId, { file, parentId: rawParentId }) => {
   await User.findByIdAndUpdate(userId, {
     $inc: { storageUsed: file.size },
   });
+
+  // 4. Enqueue background processing pipeline (Idempotent & non-blocking)
+  try {
+    const enqueueResult = await enqueueFileProcessing(fileNode);
+    if (enqueueResult.queued && enqueueResult.jobId) {
+      fileNode.processing.status = 'queued';
+      fileNode.processing.jobId = enqueueResult.jobId;
+      await fileNode.save();
+    } else {
+      fileNode.processing.status = 'pending';
+      if (enqueueResult.reason) {
+        fileNode.processing.lastError = `Queue deferred: ${enqueueResult.reason}`;
+      }
+      await fileNode.save();
+    }
+  } catch (queueErr) {
+    console.warn(`[Background Queue] Failed to enqueue file ${fileNode._id}:`, queueErr.message);
+    fileNode.processing.status = 'pending';
+    fileNode.processing.lastError = queueErr.message;
+    await fileNode.save().catch(() => {});
+  }
 
   return fileNode;
 };

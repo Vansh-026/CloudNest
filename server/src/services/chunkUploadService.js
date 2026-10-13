@@ -7,6 +7,7 @@ import UploadSession from '../models/UploadSession.js';
 import Node from '../models/Node.js';
 import User from '../models/User.js';
 import { uploadFileToStorage, isS3Configured } from './s3Service.js';
+import { enqueueFileProcessing } from '../queues/fileProcessing.queue.js';
 
 const UPLOAD_ROOT = path.resolve('uploads');
 const CHUNKS_DIR = path.join(UPLOAD_ROOT, 'chunks');
@@ -373,6 +374,27 @@ export const assembleAndFinalizeUpload = async (session) => {
   session.status = 'completed';
   session.fileNodeId = fileNode._id;
   await session.save();
+
+  // Enqueue background processing pipeline (Idempotent & non-blocking)
+  try {
+    const enqueueResult = await enqueueFileProcessing(fileNode);
+    if (enqueueResult.queued && enqueueResult.jobId) {
+      fileNode.processing.status = 'queued';
+      fileNode.processing.jobId = enqueueResult.jobId;
+      await fileNode.save();
+    } else {
+      fileNode.processing.status = 'pending';
+      if (enqueueResult.reason) {
+        fileNode.processing.lastError = `Queue deferred: ${enqueueResult.reason}`;
+      }
+      await fileNode.save();
+    }
+  } catch (queueErr) {
+    console.warn(`[Background Queue] Failed to enqueue chunked file ${fileNode._id}:`, queueErr.message);
+    fileNode.processing.status = 'pending';
+    fileNode.processing.lastError = queueErr.message;
+    await fileNode.save().catch(() => {});
+  }
 
   return fileNode;
 };

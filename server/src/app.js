@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import nodeRoutes from './routes/nodeRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import shareRoutes from './routes/shareRoutes.js';
+import { getSystemQueueHealth } from './services/jobService.js';
 
 const app = express();
 
@@ -51,6 +52,21 @@ app.get('/api/health', (_req, res) => {
     success: true,
     message: 'CloudNest API is running',
   });
+});
+
+app.get('/api/health/queue', async (_req, res) => {
+  try {
+    const health = await getSystemQueueHealth();
+    res.status(health.redis?.status === 'ok' ? 200 : 503).json({
+      success: true,
+      data: health,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
 });
 
 app.get('/health', (_req, res) => {

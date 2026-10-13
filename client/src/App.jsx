@@ -18,6 +18,7 @@ import {
   HardDrive,
   Download,
   Eye,
+  EyeOff,
   MoreVertical,
   ChevronRight,
   LogOut,
@@ -118,6 +119,8 @@ export default function App() {
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
 
   // Additional Auth states
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -260,6 +263,27 @@ export default function App() {
     }
   }, [currentUser, currentFolderId, activeTab]);
 
+  // Auto-poll files that are currently processing in the background
+  useEffect(() => {
+    const hasActiveProcessing = nodes.some(
+      (n) => n.type === 'file' && (n.processing?.status === 'queued' || n.processing?.status === 'processing')
+    );
+
+    if (!hasActiveProcessing || !currentUser) return;
+
+    const pollTimer = setInterval(() => {
+      if (activeTab === 'drive') {
+        api.getNodes(currentFolderId).then((res) => {
+          if (res.success && res.data?.nodes) {
+            setNodes(res.data.nodes);
+          }
+        }).catch(() => {});
+      }
+    }, 4000);
+
+    return () => clearInterval(pollTimer);
+  }, [nodes, currentUser, currentFolderId, activeTab]);
+
   const loadContents = async () => {
     setIsLoading(true);
     try {
@@ -303,6 +327,7 @@ export default function App() {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
+    setIsAuthSubmitting(true);
 
     try {
       if (authTab === 'login') {
@@ -342,6 +367,8 @@ export default function App() {
       }
     } catch (err) {
       setAuthError(err.message || 'An unexpected error occurred');
+    } finally {
+      setIsAuthSubmitting(false);
     }
   };
 
@@ -797,64 +824,46 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <div
-        className="auth-container"
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: theme === 'light'
-            ? 'radial-gradient(circle at 50% 30%, #e0e7ff 0%, #f8fafc 70%)'
-            : 'radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0a0d14 70%)',
-          padding: 20,
-        }}
-      >
-        <div className="glass-modal auth-card" style={{ width: '100%', maxWidth: 460, borderRadius: 'var(--radius-lg)', position: 'relative' }}>
-          {/* Auth Theme Toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border-subtle)',
-              color: theme === 'dark' ? '#fbbf24' : '#4f46e5',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
+      <div className="auth-container">
+        {/* Ambient Decorative Glow Orbs */}
+        <div className="auth-bg-glow-1" />
+        <div className="auth-bg-glow-2" />
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
-            <div className="brand-icon" style={{ width: 56, height: 56, marginBottom: 16 }}>
+        <div className="glass-modal auth-card">
+          {/* Top Bar with Theme Switcher */}
+          <div className="auth-top-bar">
+            <button
+              type="button"
+              className="auth-theme-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+          </div>
+
+          {/* Brand Header */}
+          <div className="auth-header">
+            <div className="auth-brand-badge">
               <Cloud size={30} color="#fff" />
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.5px' }}>CloudNest</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 4 }}>
-              Next-Gen Cloud Storage &amp; File Management
+            <h1 className="auth-title">CloudNest</h1>
+            <p className="auth-subtitle">
+              Next-Gen Cloud Storage &amp; File Workspace
             </p>
           </div>
 
           {authError && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: 'var(--color-danger)', fontSize: '0.85rem', marginBottom: 16 }}>
-              <AlertCircle size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: 'var(--color-danger)', fontSize: '0.85rem', marginBottom: 18 }}>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
               <span>{authError}</span>
             </div>
           )}
 
           {authSuccess && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-md)', color: 'var(--color-success)', fontSize: '0.85rem', marginBottom: 16 }}>
-              <Check size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-md)', color: 'var(--color-success)', fontSize: '0.85rem', marginBottom: 18 }}>
+              <Check size={18} style={{ flexShrink: 0 }} />
               <span>{authSuccess}</span>
             </div>
           )}
@@ -862,8 +871,8 @@ export default function App() {
           {/* Flow 1: 2FA Verification during Login */}
           {twoFactorLogin.required ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: 'var(--radius-md)' }}>
-                <Smartphone size={24} color="var(--accent-primary)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: 'var(--radius-md)' }}>
+                <Smartphone size={24} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: '0.85rem' }}>
                   <strong>Two-Factor Authentication</strong>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>Enter the 6-digit code from Google Authenticator</p>
@@ -879,18 +888,18 @@ export default function App() {
                     maxLength={6}
                     autoFocus
                     required
-                    style={{ textAlign: 'center', letterSpacing: '6px', fontSize: '1.25rem', fontWeight: 700 }}
+                    style={{ textAlign: 'center', letterSpacing: '6px', fontSize: '1.25rem', fontWeight: 700, height: 46 }}
                     value={twoFactorLogin.code}
                     onChange={(e) => setTwoFactorLogin({ ...twoFactorLogin, code: e.target.value.replace(/\D/g, '') })}
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 44 }}>
+                <button type="submit" className="auth-submit-btn" style={{ marginTop: 4 }}>
                   Verify &amp; Sign In
                 </button>
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', height: 44, borderRadius: 12 }}
                   onClick={() => setTwoFactorLogin({ required: false, email: '', password: '', code: '' })}
                 >
                   Cancel
@@ -900,8 +909,8 @@ export default function App() {
           ) : authTab === 'verify-email' ? (
             /* Flow 2: Email Verification */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: 'var(--radius-md)' }}>
-                <Mail size={24} color="var(--accent-primary)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: 'var(--radius-md)' }}>
+                <Mail size={24} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: '0.85rem' }}>
                   <strong>Verify Your Email</strong>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>Enter your verification token to activate your account</p>
@@ -915,25 +924,25 @@ export default function App() {
               )}
 
               <form onSubmit={handleVerifyEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Verification Token</label>
+                <div className="auth-input-wrapper">
+                  <Key className="auth-input-icon" size={17} />
                   <input
                     type="text"
-                    className="input"
+                    className="auth-input"
                     placeholder="Paste verification token"
                     required
                     value={verifyEmailForm.token}
                     onChange={(e) => setVerifyEmailForm({ ...verifyEmailForm, token: e.target.value })}
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 44 }}>
+                <button type="submit" className="auth-submit-btn">
                   Verify Email
                 </button>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 500 }} onClick={handleResendVerification}>
+                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.82rem', cursor: 'pointer', fontWeight: 500 }} onClick={handleResendVerification}>
                     Resend token
                   </button>
-                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer' }} onClick={() => { setAuthTab('login'); setAuthError(''); }}>
+                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.82rem', cursor: 'pointer' }} onClick={() => { setAuthTab('login'); setAuthError(''); }}>
                     Back to Sign In
                   </button>
                 </div>
@@ -942,29 +951,29 @@ export default function App() {
           ) : authTab === 'forgot-password' ? (
             /* Flow 3: Forgot Password */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 'var(--radius-md)' }}>
-                <Key size={24} color="#f59e0b" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 'var(--radius-md)' }}>
+                <Key size={24} color="#f59e0b" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: '0.85rem' }}>
                   <strong>Reset Your Password</strong>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>We will issue a secure reset token for your account</p>
                 </div>
               </div>
               <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Email Address</label>
+                <div className="auth-input-wrapper">
+                  <Mail className="auth-input-icon" size={17} />
                   <input
                     type="email"
-                    className="input"
+                    className="auth-input"
                     placeholder="name@example.com"
                     required
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 44 }}>
+                <button type="submit" className="auth-submit-btn">
                   Send Password Reset Token
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ width: '100%' }} onClick={() => { setAuthTab('login'); setAuthError(''); }}>
+                <button type="button" className="btn btn-secondary" style={{ width: '100%', height: 44, borderRadius: 12 }} onClick={() => { setAuthTab('login'); setAuthError(''); }}>
                   Back to Sign In
                 </button>
               </form>
@@ -972,41 +981,41 @@ export default function App() {
           ) : authTab === 'reset-password' ? (
             /* Flow 4: Reset Password */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 'var(--radius-md)' }}>
-                <Lock size={24} color="#10b981" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 'var(--radius-md)' }}>
+                <Lock size={24} color="#10b981" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: '0.85rem' }}>
                   <strong>Create New Password</strong>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>Enter the reset token and your new password</p>
                 </div>
               </div>
               <form onSubmit={handleResetPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Reset Token</label>
+                <div className="auth-input-wrapper">
+                  <Key className="auth-input-icon" size={17} />
                   <input
                     type="text"
-                    className="input"
+                    className="auth-input"
                     placeholder="Enter reset token"
                     required
                     value={resetPasswordForm.token}
                     onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, token: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>New Password</label>
+                <div className="auth-input-wrapper">
+                  <Lock className="auth-input-icon" size={17} />
                   <input
                     type="password"
-                    className="input"
-                    placeholder="At least 6 characters"
+                    className="auth-input"
+                    placeholder="New password (at least 6 characters)"
                     required
                     minLength={6}
                     value={resetPasswordForm.newPassword}
                     onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, newPassword: e.target.value })}
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 44 }}>
+                <button type="submit" className="auth-submit-btn">
                   Save New Password
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ width: '100%' }} onClick={() => { setAuthTab('login'); setAuthError(''); }}>
+                <button type="button" className="btn btn-secondary" style={{ width: '100%', height: 44, borderRadius: 12 }} onClick={() => { setAuthTab('login'); setAuthError(''); }}>
                   Back to Sign In
                 </button>
               </form>
@@ -1014,39 +1023,25 @@ export default function App() {
           ) : (
             /* Flow 5: Sign In & Register */
             <>
-              {/* Tab Selector */}
-              <div style={{ display: 'flex', background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 4, marginBottom: 20 }}>
+              {/* Segmented Tab Pill Selector */}
+              <div className="auth-tabs-pill">
                 <button
                   type="button"
-                  className="btn"
+                  className={`auth-tab-btn ${authTab === 'login' ? 'active' : ''}`}
                   onClick={() => { setAuthTab('login'); setAuthError(''); setAuthSuccess(''); }}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    background: authTab === 'login' ? 'var(--accent-primary)' : 'transparent',
-                    color: authTab === 'login' ? '#ffffff' : 'var(--text-secondary)',
-                    fontWeight: authTab === 'login' ? 600 : 500,
-                  }}
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className={`auth-tab-btn ${authTab === 'register' ? 'active' : ''}`}
                   onClick={() => { setAuthTab('register'); setAuthError(''); setAuthSuccess(''); }}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    background: authTab === 'register' ? 'var(--accent-primary)' : 'transparent',
-                    color: authTab === 'register' ? '#ffffff' : 'var(--text-secondary)',
-                    fontWeight: authTab === 'register' ? 600 : 500,
-                  }}
                 >
                   Register
                 </button>
               </div>
 
-              {/* Google Sign In Button */}
+              {/* Google One-Click Auth Button */}
               <button
                 type="button"
                 className="btn-google"
@@ -1064,46 +1059,65 @@ export default function App() {
                 {authTab === 'register' && (
                   <div>
                     <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Full Name</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="e.g. Vansh"
-                      required
-                      value={authForm.name}
-                      onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
-                    />
+                    <div className="auth-input-wrapper">
+                      <UserIcon className="auth-input-icon" size={17} />
+                      <input
+                        type="text"
+                        className="auth-input"
+                        placeholder="e.g. Vansh"
+                        required
+                        value={authForm.name}
+                        onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                      />
+                    </div>
                   </div>
                 )}
 
                 <div>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Email Address</label>
-                  <input
-                    type="email"
-                    className="input"
-                    placeholder="name@example.com"
-                    required
-                    value={authForm.email}
-                    onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                  />
+                  <div className="auth-input-wrapper">
+                    <Mail className="auth-input-icon" size={17} />
+                    <input
+                      type="email"
+                      className="auth-input"
+                      placeholder="name@example.com"
+                      required
+                      value={authForm.email}
+                      onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Password</label>
-                  <input
-                    type="password"
-                    className="input"
-                    placeholder="••••••••••••"
-                    required
-                    value={authForm.password}
-                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                  />
+                  <div className="auth-input-wrapper">
+                    <Lock className="auth-input-icon" size={17} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="auth-input has-toggle"
+                      placeholder="At least 6 characters"
+                      required
+                      minLength={6}
+                      value={authForm.password}
+                      onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="auth-password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
 
                 {authTab === 'login' && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -2 }}>
                     <button
                       type="button"
-                      style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 500 }}
+                      style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.82rem', cursor: 'pointer', fontWeight: 500 }}
                       onClick={() => { setAuthTab('forgot-password'); setAuthError(''); setAuthSuccess(''); setForgotEmail(authForm.email); }}
                     >
                       Forgot password?
@@ -1111,10 +1125,27 @@ export default function App() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 6, height: 44 }}>
-                  {authTab === 'login' ? 'Sign In to CloudNest' : 'Create Free Account'}
+                <button
+                  type="submit"
+                  className="auth-submit-btn"
+                  disabled={isAuthSubmitting}
+                >
+                  {isAuthSubmitting ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={16} />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    authTab === 'login' ? 'Sign In to CloudNest' : 'Create Free Account'
+                  )}
                 </button>
               </form>
+
+              {/* Trust Badge */}
+              <div className="auth-trust-badge">
+                <ShieldCheck size={14} color="#10b981" />
+                <span>256-bit AES Encryption • Zero-Knowledge Storage</span>
+              </div>
             </>
           )}
         </div>
@@ -1126,8 +1157,8 @@ export default function App() {
     <div className="app-container" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
       {/* Toast Notification */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 1000, background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 20px', color: 'var(--text-primary)', boxShadow: 'var(--modal-shadow)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          {toast.type === 'error' ? <AlertCircle color="var(--color-danger)" size={18} /> : <Check color="var(--color-success)" size={18} />}
+        <div className="app-toast">
+          {toast.type === 'error' ? <AlertCircle color="var(--color-danger)" size={18} style={{ flexShrink: 0 }} /> : <Check color="var(--color-success)" size={18} style={{ flexShrink: 0 }} />}
           <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{toast.message}</span>
         </div>
       )}
@@ -1530,20 +1561,20 @@ export default function App() {
                         className="folder-card"
                         onClick={() => setCurrentFolderId(folder._id)}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
-                          <Folder size={22} color="#6366f1" />
-                          <span style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                          <Folder size={20} color="#6366f1" style={{ flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                             {folder.name}
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                           {activeTab === 'trash' ? (
                             <>
-                              <button type="button" className="btn-icon" title="Restore" onClick={() => handleRestoreNode(folder)}>
+                              <button type="button" className="card-action-btn" title="Restore" onClick={() => handleRestoreNode(folder)}>
                                 <RotateCcw size={15} />
                               </button>
-                              <button type="button" className="btn-icon" title="Delete Forever" onClick={() => handleDeletePermanently(folder)}>
+                              <button type="button" className="card-action-btn" title="Delete Forever" onClick={() => handleDeletePermanently(folder)}>
                                 <Trash2 size={15} color="#ef4444" />
                               </button>
                             </>
@@ -1551,27 +1582,23 @@ export default function App() {
                             <>
                               <button
                                 type="button"
-                                className="btn-icon"
-                                onClick={(e) => { e.stopPropagation(); handleToggleStar(folder); }}
+                                className="card-action-btn"
+                                onClick={() => handleToggleStar(folder)}
                               >
                                 <Star size={15} fill={folder.isFavorite ? '#f59e0b' : 'none'} color={folder.isFavorite ? '#f59e0b' : 'var(--text-muted)'} />
                               </button>
                               <button
                                 type="button"
-                                className="btn-icon"
+                                className="card-action-btn"
                                 title="Share folder"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShareModalNode(folder);
-                                }}
+                                onClick={() => setShareModalNode(folder)}
                               >
                                 <Share2 size={15} />
                               </button>
                               <button
                                 type="button"
-                                className="btn-icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
+                                className="card-action-btn"
+                                onClick={() => {
                                   setActiveNode(folder);
                                   setRenameValue(folder.name);
                                   setShowRenameModal(true);
@@ -1581,8 +1608,8 @@ export default function App() {
                               </button>
                               <button
                                 type="button"
-                                className="btn-icon"
-                                onClick={(e) => { e.stopPropagation(); handleTrashNode(folder); }}
+                                className="card-action-btn"
+                                onClick={() => handleTrashNode(folder)}
                               >
                                 <Trash2 size={15} />
                               </button>
@@ -1602,67 +1629,141 @@ export default function App() {
                   <div className={viewMode === 'grid' ? 'file-grid' : 'list-view'}>
                     {files.map((file) => {
                       const { icon: FileIconComponent, color, label } = getFileIcon(file.mimeType, file.metadata?.extension);
+                      const hasThumb = Boolean(file.processing?.thumbnailKey || file.processing?.thumbnailUrl);
+                      const isProcessing = file.processing?.status === 'queued' || file.processing?.status === 'processing';
 
                       return (
                         <div key={file._id} className="file-card" onClick={() => setPreviewNode(file)}>
-                          <div className="file-preview-thumbnail">
-                            <FileIconComponent size={40} color={color} />
+                          <div className="file-preview-thumbnail" style={{ position: 'relative', overflow: 'hidden' }}>
+                            {hasThumb ? (
+                              <img
+                                src={api.getFileThumbnailUrl(file._id)}
+                                alt={file.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : null}
+                            <div style={{ display: hasThumb ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                              <FileIconComponent size={40} color={color} />
+                            </div>
+                            {isProcessing && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 6,
+                                  right: 6,
+                                  background: 'rgba(15, 23, 42, 0.85)',
+                                  backdropFilter: 'blur(4px)',
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontSize: '0.65rem',
+                                  color: '#a5b4fc',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                <RefreshCw className="animate-spin" size={10} />
+                                <span>Processing</span>
+                              </div>
+                            )}
                           </div>
 
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                            <div style={{ overflow: 'hidden' }}>
-                              <h5 style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {file.name}
-                              </h5>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {formatBytes(file.size)}
-                              </span>
-                            </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', minWidth: 0 }}>
+                            {/* File Name - Full Width with Ellipsis */}
+                            <h5
+                              style={{
+                                fontSize: '0.86rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                width: '100%',
+                                margin: 0,
+                                minWidth: 0,
+                              }}
+                              title={file.name}
+                            >
+                              {file.name}
+                            </h5>
 
-                            <div style={{ display: 'flex', gap: 2 }} onClick={(e) => e.stopPropagation()}>
-                              {activeTab === 'trash' ? (
-                                <>
-                                  <button type="button" className="btn-icon" title="Restore" onClick={() => handleRestoreNode(file)}>
-                                    <RotateCcw size={14} />
-                                  </button>
-                                  <button type="button" className="btn-icon" title="Delete Permanently" onClick={() => handleDeletePermanently(file)}>
-                                    <Trash2 size={14} color="#ef4444" />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="btn-icon"
-                                    title="Download via Signed S3 URL"
-                                    onClick={() => handleDownloadFile(file)}
+                            {/* Details & Actions Row */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', minWidth: 0 }}>
+                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                  {formatBytes(file.size)}
+                                </span>
+                                {isProcessing && (
+                                  <span style={{ fontSize: '0.66rem', color: '#6366f1', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                                    • Processing
+                                  </span>
+                                )}
+                                {file.processing?.status === 'completed' && file.processing?.extractedText && (
+                                  <span
+                                    style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      color: '#10b981',
+                                      background: 'rgba(16, 185, 129, 0.12)',
+                                      padding: '1px 5px',
+                                      borderRadius: 4,
+                                      flexShrink: 0,
+                                    }}
+                                    title="OCR Text extracted"
                                   >
-                                    <Download size={14} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-icon"
-                                    title="Share file"
-                                    onClick={() => setShareModalNode(file)}
-                                  >
-                                    <Share2 size={14} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-icon"
-                                    onClick={() => handleToggleStar(file)}
-                                  >
-                                    <Star size={14} fill={file.isFavorite ? '#f59e0b' : 'none'} color={file.isFavorite ? '#f59e0b' : 'var(--text-muted)'} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-icon"
-                                    onClick={() => handleTrashNode(file)}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
-                              )}
+                                    OCR
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                                {activeTab === 'trash' ? (
+                                  <>
+                                    <button type="button" className="card-action-btn" title="Restore" onClick={() => handleRestoreNode(file)}>
+                                      <RotateCcw size={14} />
+                                    </button>
+                                    <button type="button" className="card-action-btn" title="Delete Permanently" onClick={() => handleDeletePermanently(file)}>
+                                      <Trash2 size={14} color="#ef4444" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="card-action-btn"
+                                      title="Download via Signed S3 URL"
+                                      onClick={() => handleDownloadFile(file)}
+                                    >
+                                      <Download size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="card-action-btn"
+                                      title="Share file"
+                                      onClick={() => setShareModalNode(file)}
+                                    >
+                                      <Share2 size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="card-action-btn"
+                                      onClick={() => handleToggleStar(file)}
+                                    >
+                                      <Star size={14} fill={file.isFavorite ? '#f59e0b' : 'none'} color={file.isFavorite ? '#f59e0b' : 'var(--text-muted)'} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="card-action-btn"
+                                      onClick={() => handleTrashNode(file)}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

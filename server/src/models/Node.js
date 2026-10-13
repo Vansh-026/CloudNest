@@ -87,6 +87,54 @@ const nodeSchema = new mongoose.Schema(
       originalName: { type: String, default: '' },
       checksum: { type: String, default: '' },
     },
+
+    processing: {
+      status: {
+        type: String,
+        enum: ['pending', 'queued', 'processing', 'completed', 'failed', 'skipped'],
+        default: 'pending',
+        index: true,
+      },
+      thumbnailStatus: {
+        type: String,
+        enum: ['pending', 'processing', 'completed', 'failed', 'skipped'],
+        default: 'pending',
+      },
+      ocrStatus: {
+        type: String,
+        enum: ['pending', 'processing', 'completed', 'failed', 'skipped'],
+        default: 'pending',
+      },
+      embeddingStatus: {
+        type: String,
+        enum: ['pending', 'processing', 'completed', 'failed', 'skipped'],
+        default: 'pending',
+      },
+      thumbnailKey: {
+        type: String,
+        default: null,
+      },
+      thumbnailUrl: {
+        type: String,
+        default: null,
+      },
+      extractedText: {
+        type: String,
+        default: null,
+      },
+      jobId: {
+        type: String,
+        default: null,
+      },
+      lastProcessedAt: {
+        type: Date,
+        default: null,
+      },
+      lastError: {
+        type: String,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,

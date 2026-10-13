@@ -36,7 +36,7 @@ cloudnest/
 │   │   ├── config/           # Environment configuration
 │   │   ├── database/         # DB connection & models/migrations
 │   │   ├── queues/           # Background job queue definitions
-│   │   ├── workers/          # Background workers (e.g. thumbnails, virus scan)
+│   │   ├── workers/          # Background workers (e.g. thumbnails, OCR, embeddings)
 │   │   ├── utils/            # Shared helper functions
 │   │   └── app.ts            # Server entrypoint
 │   │

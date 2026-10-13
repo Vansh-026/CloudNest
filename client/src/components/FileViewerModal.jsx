@@ -42,6 +42,8 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
   const [copied, setCopied] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [imageError, setImageError] = useState(false);
+  const [showOcrText, setShowOcrText] = useState(false);
+  const [ocrCopied, setOcrCopied] = useState(false);
 
   const ext = (node?.metadata?.extension || node?.name?.split('.').pop() || '').replace('.', '').toLowerCase();
   const mime = (node?.mimeType || '').toLowerCase();
@@ -226,6 +228,26 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
             </button>
           )}
 
+          {Boolean(node?.processing?.extractedText) && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowOcrText(!showOcrText)}
+              style={{
+                padding: '7px 10px',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: showOcrText ? 'var(--accent-primary)' : undefined,
+                color: showOcrText ? '#ffffff' : undefined,
+              }}
+              title="View OCR text extracted from this image"
+            >
+              <FileText size={14} />
+              <span className="viewer-btn-text">{showOcrText ? 'Hide OCR' : 'OCR Text'}</span>
+            </button>
+          )}
+
           <button
             className="btn btn-secondary"
             onClick={handleOpenNewTab}
@@ -284,6 +306,64 @@ export default function FileViewerModal({ node, isOpen, onClose, onDownload, onS
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* OCR Extracted Text Side Drawer */}
+        {showOcrText && node?.processing?.extractedText && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              bottom: '20px',
+              width: '380px',
+              maxWidth: 'calc(100% - 40px)',
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '16px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 50,
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={16} color="var(--accent-primary)" />
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc' }}>OCR Extracted Text</span>
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText(node.processing.extractedText);
+                  setOcrCopied(true);
+                  setTimeout(() => setOcrCopied(false), 2000);
+                }}
+                style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {ocrCopied ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                <span>{ocrCopied ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                background: 'rgba(0, 0, 0, 0.4)',
+                padding: '14px',
+                borderRadius: '10px',
+                fontSize: '0.85rem',
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                color: '#cbd5e1',
+                fontFamily: 'monospace',
+              }}
+            >
+              {node.processing.extractedText}
+            </div>
+          </div>
+        )}
+
         {/* PDF Document Viewer */}
         {isPdf && (
           <div
